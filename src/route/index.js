@@ -3,28 +3,55 @@ const express = require('express')
 // Cтворюємо роутер - місце, куди ми підключаємо ендпоїнти
 const router = express.Router()
 
-class User {
+class Product {
   static #list = []
 
-  constructor(email, login, password) {
-    this.email = email
-    this.login = login
-    this.password = password
-    this.id = new Date().getTime()
+  constructor(name, price, description) {
+    this.name = name
+    this.price = price
+    this.description = description
+    this.id = Math.trunc(Math.random() * 100000)
+    this.createDate = new Date().toISOString()
   }
-
-  verifyPassword = (password) => this.password === password
-
-  static add = (user) => this.#list.push(user)
 
   static getList = () => this.#list
 
+  static add(product) {
+    this.#list.push(product)
+  }
+
   static getById = (id) =>
-    this.#list.find((user) => user.id === id)
+    this.#list.find((product) => product.id === id)
+
+  static updateById = (id, data) => {
+    const product = this.getById(id)
+
+    if (product) {
+      this.update(product, data)
+      return true
+    } else {
+      return false
+    }
+  }
+
+  static update = (
+    product,
+    { price, name, description },
+  ) => {
+    if (price) {
+      product.price = price
+    }
+    if (name) {
+      product.name = name
+    }
+    if (description) {
+      product.description = description
+    }
+  }
 
   static deleteById = (id) => {
     const index = this.#list.findIndex(
-      (user) => user.id === id,
+      (product) => product.id === id,
     )
 
     if (index !== -1) {
@@ -32,22 +59,6 @@ class User {
       return true
     } else {
       return false
-    }
-  }
-
-  static updateById = (id, data) => {
-    const user = this.getById(id)
-
-    if (user) {
-      this.update(user, data)
-
-      return true
-    } else return false
-  }
-
-  static update = (user, { email }) => {
-    if (email) {
-      user.email = email
     }
   }
 }
@@ -59,72 +70,104 @@ class User {
 // ↙️ тут вводимо шлях (PATH) до сторінки
 router.get('/', function (req, res) {
   // res.render генерує нам HTML сторінку
-  const list = User.getList()
+  const list = Product.getList()
   // ↙️ cюди вводимо назву файлу з сontainer
   res.render('index', {
     // вказуємо назву папки контейнера, в якій знаходяться наші стилі
     style: 'index',
 
-    data: {
-      users: {
-        list,
-        isEmpty: list.length === 0,
-      },
-    },
+    data: {},
   })
   // ↑↑ сюди вводимо JSON дані
 })
 
 // ================================================================
 
-router.post('/user-create', function (req, res) {
-  const { email, login, password } = req.body
 
-  const user = new User(email, login, password)
-
-  User.add(user)
-
-  console.log(User.getList())
-
-  res.render('alert', {
-    style: 'alert',
-    info: 'Користувач створений',
+router.get('/product-create', function (req, res) {
+  res.render('product-create', {
+    style: 'product-create',
   })
 })
 
 // ================================================================
 
-router.get('/user-delete', function (req, res) {
+router.post('/product-create', function (req, res) {
+  const { name, price, description } = req.body
+
+  const product = new Product(name, price, description)
+
+  Product.add(product)
+
+  res.render('alert', {
+    style: 'alert',
+    title: 'Успішне виконання дії',
+    info: 'Товар був успішно створений',
+  })
+})
+
+// ================================================================
+
+router.get('/product-list', function (req, res) {
+  res.render('product-list', {
+    style: 'product-list',
+    products: Product.getList(),
+  })
+})
+
+// ================================================================
+
+router.get('/product-edit', function (req, res) {
   const { id } = req.query
 
-  User.deleteById(Number(id))
+  const product = Product.getById(Number(id))
+
+  if (product) {
+    res.render('product-edit', {
+      style: 'product-edit',
+      product,
+    })
+  } else {
+    res.render('alert', {
+      style: 'alert',
+      title: 'Помилка',
+      info: 'Товар з таким ID не знайдено',
+    })
+  }
+})
+
+// ================================================================
+
+router.post('/product-edit', function (req, res) {
+  const { name, price, id, description } = req.body
+
+  const result = Product.updateById(Number(id), {
+    name,
+    price,
+    description,
+  })
 
   res.render('alert', {
     style: 'alert',
-    info: 'Користувач видалений',
+    title: result ? 'Успішне виконання дії' : 'Помилка',
+    info: result ? 'Товар був успішно оновлено' : '',
   })
 })
 
 // ================================================================
 
-router.post('/user-update', function (req, res) {
-  const { email, password, id } = req.body
+router.get('/product-delete', function (req, res) {
+  const { id } = req.query
 
-  let result = false
-
-  const user = User.getById(Number(id))
-
-  if (user.verifyPassword(String(password))) {
-    User.update(user, { email })
-    result = true
-  }
+  const result = Product.deleteById(Number(id))
 
   res.render('alert', {
     style: 'alert',
-    info: result
-      ? 'Email пошта оновлена'
-      : 'Помилка при оновлені email',
+    title: result ? 'Успішне виконання дії' : 'Помилка',
+    info: result ? 'Товар був успішно видалено' : '',
   })
 })
+
+
 // Підключаємо роутер до бек-енду
 module.exports = router

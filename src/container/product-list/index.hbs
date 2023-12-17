@@ -2,15 +2,25 @@
 Це код container файлу для index сторінки,
 в якому міститься код, котрий буде віддаватися по шляху (PATH) - "/"
 }}
-<section>
-  <div class="card">
-    <div>
-      <h1 class="title">{{title}}</h1>
-      <p>{{info}}</p>
+
+<main>
+  <section class="product">
+    <h1 class="title">Список товарів</h1>
+    <div class="product__list">
+
+      {{#each products}}
+      {{> product-card}}
+      {{/each}}
     </div>
-    <a href="/product-list" class="button">Повернутися назад</a>
-  </div>
-</section>
+    <div class="form__buttons">
+      <a class="form__button" href="/product-create">Створити товар</a>
+    </div> 
+  </section>
+
+
+</main>
+
+
 
 {{!
 Цей код містить лише те, що буде виводитись в
